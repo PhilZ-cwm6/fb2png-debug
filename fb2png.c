@@ -25,6 +25,9 @@
 #include <linux/fb.h>
 #include <errno.h>
 
+// for S_IREAD|S_IWRITE
+#include <sys/stat.h>
+
 #include "log.h"
 #include "fb2png.h"
 #include "fb.h"
@@ -74,8 +77,14 @@ int get_device_fb(const char* path, struct fb *fb)
 
     offset = vinfo.xoffset * bytespp;
 
-    /* Android use double-buffer, capture 2nd */
-    offset += vinfo.xres * vinfo.yoffset * bytespp;
+    /* Check if Android use double-buffer, capture 2nd */
+    struct fb_fix_screeninfo fi;
+    if (ioctl(fd, FBIOGET_FSCREENINFO, &fi) < 0) {
+        D("failed to get fb0 info\n");
+        return -1;
+    }
+    if (vinfo.yres * fi.line_length * 2 > fi.smem_len)
+        offset += vinfo.xres * vinfo.yoffset * bytespp;
 #else
     offset = 0;
 #endif
@@ -88,6 +97,23 @@ int get_device_fb(const char* path, struct fb *fb)
     if (read(fd, x ,fb->size) != fb->size) goto oops;
 
     fb->data = x;
+
+    // debug, write the raw buffer
+    int fp_out = open("/sdcard/fbshot.raw", O_CREAT|O_TRUNC|O_RDWR, S_IRUSR|S_IWUSR);
+    if (fp_out < 0) {
+        D("failed to create raw image\n");
+        close(fd);
+        return -1;
+    }
+    if (write(fp_out, fb->data, fb->size) != fb->size) {
+        D("failed to write raw image\n");
+        close(fd);
+        close(fp_out);
+        return -1;
+    }
+    close(fp_out);
+    //----- end debug write raw buffer
+
     close(fd);
 
     return 0;

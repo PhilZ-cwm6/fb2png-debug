@@ -23,7 +23,19 @@
 
 #include "img_process.h"
 #include "log.h"
+/*
+WORD red_mask = 0xF800;
+WORD green_mask = 0x7E0;
+WORD blue_mask = 0x1F;
 
+BYTE red_value = (pixel & red_mask) >> 11;
+BYTE green_value = (pixel & green_mask) >> 5;
+BYTE blue_value = (pixel & blue_mask);
+
+BYTE red   = red_value << 3;
+BYTE green = green_value << 2;
+BYTE blue  = blue_value << 3;
+*/
 int rgb565_to_rgb888(const char* src, char* dst, size_t pixel)
 {
     struct rgb565  *from;
@@ -35,10 +47,9 @@ int rgb565_to_rgb888(const char* src, char* dst, size_t pixel)
     int i = 0;
     /* traverse pixel of the row */
     while(i++ < pixel) {
-
-        to->r = from->r;
-        to->g = from->g;
-        to->b = from->b;
+        to->r = (from->r & 0xF800) >> 11;
+        to->g = (from->g & 0x07E0) >> 5;
+        to->b = (from->b & 0x001F);
         /* scale */
         to->r <<= 3;
         to->g <<= 2;
