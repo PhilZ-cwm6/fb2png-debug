@@ -78,13 +78,15 @@ int get_device_fb(const char* path, struct fb *fb)
     offset = vinfo.xoffset * bytespp;
 
     /* Check if Android use double-buffer, capture 2nd */
+    /* For now, always use double buffer but log detection */
     struct fb_fix_screeninfo fi;
     if (ioctl(fd, FBIOGET_FSCREENINFO, &fi) < 0) {
         D("failed to get fb0 info\n");
         return -1;
     }
     if (vinfo.yres * fi.line_length * 2 > fi.smem_len)
-        offset += vinfo.xres * vinfo.yoffset * bytespp;
+        D("Using double buffer\n");
+    offset += vinfo.xres * vinfo.yoffset * bytespp;
 #else
     offset = 0;
 #endif
